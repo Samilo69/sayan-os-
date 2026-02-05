@@ -3,18 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <title>Sayan OS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body data-theme="dark">
 
-    <div id="sidebar">
-        <div class="icon" data-app="explorer">📁</div>
-        <div class="icon" data-app="editor">📝</div>
-        <div class="icon" data-app="assistant">🤖</div>
+    <!-- Top bar / Start -->
+    <div id="topbar">
+        <div id="start-button">☰ Sayan</div>
+        <div id="topbar-center"></div>
+        <div id="topbar-right">
+            <span id="clock"></span>
+        </div>
     </div>
 
+    <!-- Start menu -->
+    <div id="start-menu" class="panel hidden">
+        <div class="start-section">
+            <div class="start-title">Apps</div>
+            <div class="start-apps">
+                <button class="start-app" data-app="explorer">📁 File Explorer</button>
+                <button class="start-app" data-app="editor">📝 Editor</button>
+                <button class="start-app" data-app="assistant">🤖 AI Assistant</button>
+                <button class="start-app" data-app="notes">🗒️ Quick Notes</button>
+            </div>
+        </div>
+        <div class="start-section">
+            <div class="start-title">System</div>
+            <div class="start-apps">
+                <button class="start-app" data-app="settings">⚙️ Settings</button>
+                <button class="start-app" data-app="themes">🎨 Themes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop -->
     <div id="desktop"></div>
+
+    <!-- Dock -->
+    <div id="dock">
+        <div class="dock-icon" data-app="explorer">📁</div>
+        <div class="dock-icon" data-app="editor">📝</div>
+        <div class="dock-icon" data-app="assistant">🤖</div>
+        <div class="dock-icon" data-app="notes">🗒️</div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications"></div>
 
     <script src="app.js"></script>
 </body>
