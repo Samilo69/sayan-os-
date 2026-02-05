@@ -1,10 +1,79 @@
 /* ========== CORE STATE ========== */
 let topZ = 10;
 let fileSystem = JSON.parse(localStorage.getItem("sayan_files") || "{}");
+let aiMemory = JSON.parse(localStorage.getItem("sayan_ai_memory") || "[]"); // simple long-term log
 
 function saveFiles() {
     localStorage.setItem("sayan_files", JSON.stringify(fileSystem));
 }
+
+function saveAIMemory() {
+    localStorage.setItem("sayan_ai_memory", JSON.stringify(aiMemory));
+}
+
+/* ========== AI MANAGER ========== */
+
+const AIManager = {
+    status: "idle",
+    errorHandler: null,
+    logs: [],
+
+    async call(prompt) {
+        this.status = "thinking";
+        const start = Date.now();
+
+        try {
+            const res = await fetch("/api/ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prompt,
+                    memory: aiMemory.slice(-20) // on envoie un peu de contexte
+                })
+            });
+
+            if (!res.ok) {
+                throw new Error("AI API error " + res.status);
+            }
+
+            const data = await res.json();
+            const reply = data.reply || "(no response)";
+            const elapsed = Date.now() - start;
+
+            const logEntry = {
+                time: new Date().toISOString(),
+                prompt,
+                reply,
+                ms: elapsed
+            };
+
+            this.logs.push(logEntry);
+            aiMemory.push({ role: "user", content: prompt });
+            aiMemory.push({ role: "assistant", content: reply });
+            saveAIMemory();
+
+            this.status = "idle";
+            return reply;
+        } catch (err) {
+            this.status = "error";
+            console.error(err);
+
+            if (this.errorHandler) {
+                this.errorHandler(err);
+            }
+
+            return "I encountered an error while thinking.";
+        }
+    },
+
+    onError(handler) {
+        this.errorHandler = handler;
+    },
+
+    init() {
+        console.log("AIManager ready.");
+    }
+};
 
 /* ========== WINDOW MANAGER ========== */
 const WindowManager = {
@@ -44,7 +113,6 @@ const WindowManager = {
 function bringToFront(win) {
     topZ++;
     win.style.zIndex = topZ;
-
     document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
     win.classList.add('active');
 }
@@ -246,13 +314,24 @@ const Apps = {
                 content.appendChild(out);
                 content.appendChild(inputRow);
 
-                const send = () => {
+                const send = async () => {
                     const text = input.value.trim();
                     if (!text) return;
+
                     out.innerHTML += `<div><strong>You:</strong> ${text}</div>`;
-                    out.innerHTML += `<div><strong>AI:</strong> (response placeholder)</div>`;
                     input.value = "";
                     out.scrollTop = out.scrollHeight;
+
+                    btn.disabled = true;
+                    btn.textContent = "…";
+
+                    const reply = await AIManager.call(text);
+
+                    out.innerHTML += `<div><strong>AI:</strong> ${reply}</div>`;
+                    out.scrollTop = out.scrollHeight;
+
+                    btn.disabled = false;
+                    btn.textContent = "Send";
                 };
 
                 btn.addEventListener('click', send);
@@ -326,6 +405,37 @@ const Apps = {
                 content.appendChild(btnNeon);
             }
         });
+    },
+
+    "ai-console"() {
+        WindowManager.createWindow({
+            title: "AI Console",
+            icon: "🧠",
+            x: 260,
+            y: 160,
+            width: 420,
+            height: 260,
+            contentBuilder: (content) => {
+                const log = document.createElement('div');
+                log.className = "ai-console-log";
+                content.appendChild(log);
+
+                const render = () => {
+                    log.innerHTML = AIManager.logs.map(entry => {
+                        return `[${entry.time}] (${entry.ms}ms)
+> ${entry.prompt}
+< ${entry.reply}
+`;
+                    }).join("\n-----------------------------\n\n");
+                    log.scrollTop = log.scrollHeight;
+                };
+
+                render();
+
+                const interval = setInterval(render, 1500);
+                content.addEventListener('DOMNodeRemoved', () => clearInterval(interval));
+            }
+        });
     }
 };
 
@@ -337,6 +447,7 @@ function launchApp(name) {
     else if (name === "notes") Apps.notes();
     else if (name === "settings") Apps.settings();
     else if (name === "themes") Apps.themes();
+    else if (name === "ai-console") Apps["ai-console"]();
 }
 
 /* ========== UI WIRING ========== */
@@ -385,4 +496,5 @@ updateClock();
 
 /* INIT */
 ThemeManager.init();
+AIManager.init();
 Notifications.show("Sayan OS loaded.");
