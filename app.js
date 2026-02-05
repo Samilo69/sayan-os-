@@ -1,4 +1,22 @@
-// Handle icon clicks
+/* ============================
+   GLOBAL SYSTEM
+============================ */
+let topZ = 10;
+
+let fileSystem = JSON.parse(localStorage.getItem("sayan_files") || "{}");
+
+function saveFiles() {
+    localStorage.setItem("sayan_files", JSON.stringify(fileSystem));
+}
+
+function bringToFront(win) {
+    topZ++;
+    win.style.zIndex = topZ;
+}
+
+/* ============================
+   ICON HANDLER
+============================ */
 document.querySelectorAll('.icon').forEach(icon => {
     icon.addEventListener('click', () => {
         const app = icon.dataset.app;
@@ -10,7 +28,9 @@ document.querySelectorAll('.icon').forEach(icon => {
     });
 });
 
-// Generic window
+/* ============================
+   GENERIC WINDOW
+============================ */
 function createWindow(title) {
     const win = document.createElement('div');
     win.className = 'window';
@@ -27,6 +47,7 @@ function createWindow(title) {
 
     document.body.appendChild(win);
 
+    win.addEventListener('mousedown', () => bringToFront(win));
     win.querySelector('.close-btn').addEventListener('click', () => win.remove());
 
     makeWindowDraggable(win);
@@ -47,21 +68,32 @@ function openExplorer() {
             <span class="close-btn">✖</span>
         </div>
 
-        <div class="content explorer">
-            <div class="file" data-file="notes">📄 Notes.txt</div>
-            <div class="file" data-file="todo">📄 Todo.txt</div>
-            <div class="file" data-file="docs">📁 Documents</div>
-            <div class="file" data-file="images">📁 Images</div>
-        </div>
+        <div class="content explorer" id="explorer-list"></div>
     `;
 
     document.body.appendChild(win);
 
+    win.addEventListener('mousedown', () => bringToFront(win));
     win.querySelector('.close-btn').addEventListener('click', () => win.remove());
 
-    win.querySelectorAll('.file').forEach(f => {
-        f.addEventListener('click', () => openEditor(f.dataset.file));
+    const list = win.querySelector('#explorer-list');
+    list.innerHTML = "";
+
+    Object.keys(fileSystem).forEach(name => {
+        const item = document.createElement('div');
+        item.className = "file";
+        item.dataset.file = name;
+        item.textContent = "📄 " + name;
+        item.addEventListener('click', () => openEditor(name));
+        list.appendChild(item);
     });
+
+    if (Object.keys(fileSystem).length === 0) {
+        list.innerHTML = `
+            <div class="file" data-file="notes">📄 Notes.txt</div>
+            <div class="file" data-file="todo">📄 Todo.txt</div>
+        `;
+    }
 
     makeWindowDraggable(win);
 }
@@ -81,12 +113,20 @@ function openEditor(filename = "New File") {
             <span class="close-btn">✖</span>
         </div>
 
-        <textarea class="content editor-area">Write something...</textarea>
+        <textarea class="content editor-area">${fileSystem[filename] || ""}</textarea>
     `;
 
     document.body.appendChild(win);
 
+    win.addEventListener('mousedown', () => bringToFront(win));
     win.querySelector('.close-btn').addEventListener('click', () => win.remove());
+
+    const textarea = win.querySelector('.editor-area');
+
+    textarea.addEventListener('input', () => {
+        fileSystem[filename] = textarea.value;
+        saveFiles();
+    });
 
     makeWindowDraggable(win);
 }
@@ -118,6 +158,9 @@ function openAssistant() {
 
     document.body.appendChild(win);
 
+    win.addEventListener('mousedown', () => bringToFront(win));
+    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
+
     const output = win.querySelector('.assistant-output');
     const input = win.querySelector('input');
     const btn = win.querySelector('button');
@@ -132,8 +175,6 @@ function openAssistant() {
         output.scrollTop = output.scrollHeight;
     });
 
-    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
-
     makeWindowDraggable(win);
 }
 
@@ -146,26 +187,38 @@ function makeWindowDraggable(win) {
 
     const start = (e) => {
         dragging = true;
+        bringToFront(win);
         const rect = win.getBoundingClientRect();
         const touch = e.touches ? e.touches[0] : e;
         offsetX = touch.clientX - rect.left;
         offsetY = touch.clientY - rect.top;
+        bar.style.cursor = "grabbing";
     };
 
     const move = (e) => {
         if (!dragging) return;
         const touch = e.touches ? e.touches[0] : e;
-        win.style.left = (touch.clientX - offsetX) + "px";
-        win.style.top = (touch.clientY - offsetY) + "px";
+
+        let x = touch.clientX - offsetX;
+        let y = touch.clientY - offsetY;
+
+        x = Math.max(0, Math.min(x, window.innerWidth - win.offsetWidth));
+        y = Math.max(0, Math.min(y, window.innerHeight - win.offsetHeight));
+
+        win.style.left = x + "px";
+        win.style.top = y + "px";
     };
 
-    const end = () => dragging = false;
+    const end = () => {
+        dragging = false;
+        bar.style.cursor = "grab";
+    };
 
     bar.addEventListener("mousedown", start);
     bar.addEventListener("mousemove", move);
     bar.addEventListener("mouseup", end);
 
-    bar.addEventListener("touchstart", start);
-    bar.addEventListener("touchmove", move);
+    bar.addEventListener("touchstart", start, { passive: true });
+    bar.addEventListener("touchmove", move, { passive: true });
     bar.addEventListener("touchend", end);
 }
