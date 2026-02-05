@@ -1,9 +1,11 @@
+// Ouvrir une fenêtre quand on clique sur une icône
 document.querySelectorAll('.icon').forEach((icon, index) => {
     icon.addEventListener('click', () => {
         createWindow("Module " + (index + 1));
     });
 });
 
+// Création d'une fenêtre
 function createWindow(title) {
     const win = document.createElement('div');
     win.className = 'window';
@@ -11,14 +13,24 @@ function createWindow(title) {
     win.style.left = "120px";
 
     win.innerHTML = `
-        <div class="titlebar">${title}</div>
+        <div class="titlebar">
+            <span class="title">${title}</span>
+            <span class="close-btn">✖</span>
+        </div>
         <div class="content">Contenu du module</div>
     `;
 
     document.body.appendChild(win);
+
+    // Bouton fermer
+    win.querySelector('.close-btn').addEventListener('click', () => {
+        win.remove();
+    });
+
     makeWindowDraggable(win);
 }
 
+// Déplacement des fenêtres (mobile + PC)
 function makeWindowDraggable(win) {
     const bar = win.querySelector('.titlebar');
     let offsetX = 0, offsetY = 0, dragging = false;
