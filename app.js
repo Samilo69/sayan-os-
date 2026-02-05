@@ -1,11 +1,11 @@
-// Ouvrir une fenêtre quand on clique sur une icône
+// Open a window when clicking an icon
 document.querySelectorAll('.icon').forEach((icon, index) => {
     icon.addEventListener('click', () => {
         createWindow("Module " + (index + 1));
     });
 });
 
-// Création d'une fenêtre
+// Create a window
 function createWindow(title) {
     const win = document.createElement('div');
     win.className = 'window';
@@ -22,7 +22,7 @@ function createWindow(title) {
 
     document.body.appendChild(win);
 
-    // Bouton fermer
+    // Close button
     win.querySelector('.close-btn').addEventListener('click', () => {
         win.remove();
     });
@@ -30,7 +30,7 @@ function createWindow(title) {
     makeWindowDraggable(win);
 }
 
-// Déplacement des fenêtres (mobile + PC)
+// Drag windows (mobile + PC)
 function makeWindowDraggable(win) {
     const bar = win.querySelector('.titlebar');
     let offsetX = 0, offsetY = 0, dragging = false;
