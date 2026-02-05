@@ -1,186 +1,55 @@
-/* ============================
-   GLOBAL SYSTEM
-============================ */
+/* ========== CORE STATE ========== */
 let topZ = 10;
-
 let fileSystem = JSON.parse(localStorage.getItem("sayan_files") || "{}");
 
 function saveFiles() {
     localStorage.setItem("sayan_files", JSON.stringify(fileSystem));
 }
 
+/* ========== WINDOW MANAGER ========== */
+const WindowManager = {
+    createWindow({ title, icon = "", width = 360, height = 260, x = 120, y = 120, contentBuilder }) {
+        const win = document.createElement('div');
+        win.className = 'window';
+        win.style.width = width + "px";
+        win.style.height = height + "px";
+        win.style.left = x + "px";
+        win.style.top = y + "px";
+
+        win.innerHTML = `
+            <div class="titlebar">
+                <div class="title">${icon ? `<span>${icon}</span>` : ""}<span>${title}</span></div>
+                <span class="close-btn">✖</span>
+            </div>
+            <div class="content"></div>
+            <div class="resize-handle"></div>
+        `;
+
+        document.body.appendChild(win);
+        bringToFront(win);
+
+        const content = win.querySelector('.content');
+        if (contentBuilder) contentBuilder(content, win);
+
+        win.querySelector('.close-btn').addEventListener('click', () => win.remove());
+        win.addEventListener('mousedown', () => bringToFront(win));
+
+        makeWindowDraggable(win);
+        makeWindowResizable(win);
+
+        return win;
+    }
+};
+
 function bringToFront(win) {
     topZ++;
     win.style.zIndex = topZ;
+
+    document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+    win.classList.add('active');
 }
 
-/* ============================
-   ICON HANDLER
-============================ */
-document.querySelectorAll('.icon').forEach(icon => {
-    icon.addEventListener('click', () => {
-        const app = icon.dataset.app;
-
-        if (app === "explorer") openExplorer();
-        else if (app === "editor") openEditor();
-        else if (app === "assistant") openAssistant();
-        else createWindow("Module");
-    });
-});
-
-/* ============================
-   GENERIC WINDOW
-============================ */
-function createWindow(title) {
-    const win = document.createElement('div');
-    win.className = 'window';
-    win.style.top = "120px";
-    win.style.left = "120px";
-
-    win.innerHTML = `
-        <div class="titlebar">
-            <span class="title">${title}</span>
-            <span class="close-btn">✖</span>
-        </div>
-        <div class="content">Empty window</div>
-    `;
-
-    document.body.appendChild(win);
-
-    win.addEventListener('mousedown', () => bringToFront(win));
-    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
-
-    makeWindowDraggable(win);
-}
-
-/* ============================
-   FILE EXPLORER
-============================ */
-function openExplorer() {
-    const win = document.createElement('div');
-    win.className = 'window';
-    win.style.top = "100px";
-    win.style.left = "120px";
-
-    win.innerHTML = `
-        <div class="titlebar">
-            <span class="title">File Explorer</span>
-            <span class="close-btn">✖</span>
-        </div>
-
-        <div class="content explorer" id="explorer-list"></div>
-    `;
-
-    document.body.appendChild(win);
-
-    win.addEventListener('mousedown', () => bringToFront(win));
-    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
-
-    const list = win.querySelector('#explorer-list');
-    list.innerHTML = "";
-
-    Object.keys(fileSystem).forEach(name => {
-        const item = document.createElement('div');
-        item.className = "file";
-        item.dataset.file = name;
-        item.textContent = "📄 " + name;
-        item.addEventListener('click', () => openEditor(name));
-        list.appendChild(item);
-    });
-
-    if (Object.keys(fileSystem).length === 0) {
-        list.innerHTML = `
-            <div class="file" data-file="notes">📄 Notes.txt</div>
-            <div class="file" data-file="todo">📄 Todo.txt</div>
-        `;
-    }
-
-    makeWindowDraggable(win);
-}
-
-/* ============================
-   TEXT EDITOR
-============================ */
-function openEditor(filename = "New File") {
-    const win = document.createElement('div');
-    win.className = 'window';
-    win.style.top = "140px";
-    win.style.left = "140px";
-
-    win.innerHTML = `
-        <div class="titlebar">
-            <span class="title">Editor - ${filename}</span>
-            <span class="close-btn">✖</span>
-        </div>
-
-        <textarea class="content editor-area">${fileSystem[filename] || ""}</textarea>
-    `;
-
-    document.body.appendChild(win);
-
-    win.addEventListener('mousedown', () => bringToFront(win));
-    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
-
-    const textarea = win.querySelector('.editor-area');
-
-    textarea.addEventListener('input', () => {
-        fileSystem[filename] = textarea.value;
-        saveFiles();
-    });
-
-    makeWindowDraggable(win);
-}
-
-/* ============================
-   AI ASSISTANT
-============================ */
-function openAssistant() {
-    const win = document.createElement('div');
-    win.className = 'window';
-    win.style.top = "160px";
-    win.style.left = "160px";
-
-    win.innerHTML = `
-        <div class="titlebar">
-            <span class="title">AI Assistant</span>
-            <span class="close-btn">✖</span>
-        </div>
-
-        <div class="content assistant-box">
-            <div class="assistant-output"></div>
-
-            <div class="assistant-input">
-                <input type="text" placeholder="Ask something...">
-                <button>Send</button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(win);
-
-    win.addEventListener('mousedown', () => bringToFront(win));
-    win.querySelector('.close-btn').addEventListener('click', () => win.remove());
-
-    const output = win.querySelector('.assistant-output');
-    const input = win.querySelector('input');
-    const btn = win.querySelector('button');
-
-    btn.addEventListener('click', () => {
-        const text = input.value.trim();
-        if (!text) return;
-
-        output.innerHTML += `<div>You: ${text}</div>`;
-        output.innerHTML += `<div>AI: (response placeholder)</div>`;
-        input.value = "";
-        output.scrollTop = output.scrollHeight;
-    });
-
-    makeWindowDraggable(win);
-}
-
-/* ============================
-   DRAGGING WINDOWS
-============================ */
+/* ========== DRAGGING ========== */
 function makeWindowDraggable(win) {
     const bar = win.querySelector('.titlebar');
     let offsetX = 0, offsetY = 0, dragging = false;
@@ -203,7 +72,7 @@ function makeWindowDraggable(win) {
         let y = touch.clientY - offsetY;
 
         x = Math.max(0, Math.min(x, window.innerWidth - win.offsetWidth));
-        y = Math.max(0, Math.min(y, window.innerHeight - win.offsetHeight));
+        y = Math.max(32, Math.min(y, window.innerHeight - 50 - win.offsetHeight));
 
         win.style.left = x + "px";
         win.style.top = y + "px";
@@ -222,3 +91,298 @@ function makeWindowDraggable(win) {
     bar.addEventListener("touchmove", move, { passive: true });
     bar.addEventListener("touchend", end);
 }
+
+/* ========== RESIZING ========== */
+function makeWindowResizable(win) {
+    const handle = win.querySelector('.resize-handle');
+    let resizing = false;
+    let startX, startY, startW, startH;
+
+    const start = (e) => {
+        e.preventDefault();
+        resizing = true;
+        win.classList.add('resizing');
+        const rect = win.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startW = rect.width;
+        startH = rect.height;
+    };
+
+    const move = (e) => {
+        if (!resizing) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const newW = Math.max(260, startW + (touch.clientX - startX));
+        const newH = Math.max(180, startH + (touch.clientY - startY));
+        win.style.width = newW + "px";
+        win.style.height = newH + "px";
+    };
+
+    const end = () => {
+        resizing = false;
+        win.classList.remove('resizing');
+    };
+
+    handle.addEventListener("mousedown", start);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", end);
+
+    handle.addEventListener("touchstart", start, { passive: true });
+    window.addEventListener("touchmove", move, { passive: true });
+    window.addEventListener("touchend", end);
+}
+
+/* ========== NOTIFICATIONS ========== */
+const Notifications = {
+    show(message, timeout = 3000) {
+        const container = document.getElementById('notifications');
+        const n = document.createElement('div');
+        n.className = 'notification';
+        n.textContent = message;
+        container.appendChild(n);
+        setTimeout(() => n.remove(), timeout);
+    }
+};
+
+/* ========== THEMES ========== */
+const ThemeManager = {
+    setTheme(name) {
+        document.body.setAttribute('data-theme', name);
+        localStorage.setItem('sayan_theme', name);
+        Notifications.show(`Theme: ${name}`);
+    },
+    init() {
+        const saved = localStorage.getItem('sayan_theme') || 'dark';
+        this.setTheme(saved);
+    }
+};
+
+/* ========== APPS ========== */
+const Apps = {
+    explorer() {
+        WindowManager.createWindow({
+            title: "File Explorer",
+            icon: "📁",
+            x: 80,
+            y: 80,
+            contentBuilder: (content) => {
+                content.classList.add('explorer');
+                const list = document.createElement('div');
+                content.appendChild(list);
+
+                const refresh = () => {
+                    list.innerHTML = "";
+                    const names = Object.keys(fileSystem);
+                    if (names.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.textContent = "No files yet. Open Editor to create one.";
+                        empty.style.opacity = "0.7";
+                        empty.style.fontSize = "12px";
+                        list.appendChild(empty);
+                        return;
+                    }
+                    names.forEach(name => {
+                        const item = document.createElement('div');
+                        item.className = "file";
+                        item.textContent = "📄 " + name;
+                        item.addEventListener('click', () => Apps.editor(name));
+                        list.appendChild(item);
+                    });
+                };
+
+                refresh();
+            }
+        });
+    },
+
+    editor(filename = "New File") {
+        WindowManager.createWindow({
+            title: `Editor - ${filename}`,
+            icon: "📝",
+            x: 120,
+            y: 110,
+            width: 380,
+            height: 260,
+            contentBuilder: (content) => {
+                const textarea = document.createElement('textarea');
+                textarea.className = "editor-area";
+                textarea.value = fileSystem[filename] || "";
+                content.appendChild(textarea);
+
+                textarea.addEventListener('input', () => {
+                    fileSystem[filename] = textarea.value;
+                    saveFiles();
+                });
+            }
+        });
+    },
+
+    assistant() {
+        WindowManager.createWindow({
+            title: "AI Assistant",
+            icon: "🤖",
+            x: 160,
+            y: 130,
+            width: 380,
+            height: 260,
+            contentBuilder: (content) => {
+                content.classList.add('assistant-box');
+
+                const out = document.createElement('div');
+                out.className = 'assistant-output';
+
+                const inputRow = document.createElement('div');
+                inputRow.className = 'assistant-input';
+
+                const input = document.createElement('input');
+                input.placeholder = "Ask something...";
+
+                const btn = document.createElement('button');
+                btn.textContent = "Send";
+
+                inputRow.appendChild(input);
+                inputRow.appendChild(btn);
+                content.appendChild(out);
+                content.appendChild(inputRow);
+
+                const send = () => {
+                    const text = input.value.trim();
+                    if (!text) return;
+                    out.innerHTML += `<div><strong>You:</strong> ${text}</div>`;
+                    out.innerHTML += `<div><strong>AI:</strong> (response placeholder)</div>`;
+                    input.value = "";
+                    out.scrollTop = out.scrollHeight;
+                };
+
+                btn.addEventListener('click', send);
+                input.addEventListener('keydown', e => {
+                    if (e.key === "Enter") send();
+                });
+            }
+        });
+    },
+
+    notes() {
+        this.editor("QuickNotes");
+    },
+
+    settings() {
+        WindowManager.createWindow({
+            title: "Settings",
+            icon: "⚙️",
+            x: 200,
+            y: 140,
+            width: 320,
+            height: 220,
+            contentBuilder: (content) => {
+                content.innerHTML = `
+                    <div style="font-size:13px; line-height:1.5;">
+                        <div><strong>Sayan OS</strong></div>
+                        <div>Minimal modular web OS.</div>
+                        <div style="margin-top:8px; opacity:0.8;">Everything is just apps and windows.</div>
+                    </div>
+                `;
+            }
+        });
+    },
+
+    themes() {
+        WindowManager.createWindow({
+            title: "Themes",
+            icon: "🎨",
+            x: 220,
+            y: 150,
+            width: 260,
+            height: 200,
+            contentBuilder: (content) => {
+                const btnDark = document.createElement('button');
+                const btnLight = document.createElement('button');
+                const btnNeon = document.createElement('button');
+
+                [btnDark, btnLight, btnNeon].forEach(b => {
+                    b.style.display = "block";
+                    b.style.width = "100%";
+                    b.style.marginBottom = "6px";
+                    b.style.padding = "6px";
+                    b.style.borderRadius = "6px";
+                    b.style.border = "1px solid var(--border)";
+                    b.style.background = "rgba(255,255,255,0.03)";
+                    b.style.color = "var(--fg)";
+                    b.style.cursor = "pointer";
+                    b.style.fontSize = "13px";
+                });
+
+                btnDark.textContent = "Dark";
+                btnLight.textContent = "Light";
+                btnNeon.textContent = "Neon";
+
+                btnDark.onclick = () => ThemeManager.setTheme("dark");
+                btnLight.onclick = () => ThemeManager.setTheme("light");
+                btnNeon.onclick = () => ThemeManager.setTheme("neon");
+
+                content.appendChild(btnDark);
+                content.appendChild(btnLight);
+                content.appendChild(btnNeon);
+            }
+        });
+    }
+};
+
+/* ========== APP LAUNCHER ========== */
+function launchApp(name) {
+    if (name === "explorer") Apps.explorer();
+    else if (name === "editor") Apps.editor();
+    else if (name === "assistant") Apps.assistant();
+    else if (name === "notes") Apps.notes();
+    else if (name === "settings") Apps.settings();
+    else if (name === "themes") Apps.themes();
+}
+
+/* ========== UI WIRING ========== */
+document.querySelectorAll('.dock-icon').forEach(icon => {
+    icon.addEventListener('click', () => {
+        launchApp(icon.dataset.app);
+    });
+});
+
+document.querySelectorAll('.start-app').forEach(btn => {
+    btn.addEventListener('click', () => {
+        launchApp(btn.dataset.app);
+        toggleStartMenu(false);
+    });
+});
+
+const startButton = document.getElementById('start-button');
+const startMenu = document.getElementById('start-menu');
+
+function toggleStartMenu(force) {
+    if (force === false) {
+        startMenu.classList.add('hidden');
+        return;
+    }
+    startMenu.classList.toggle('hidden');
+}
+
+startButton.addEventListener('click', () => toggleStartMenu());
+
+document.addEventListener('click', (e) => {
+    if (!startMenu.contains(e.target) && e.target !== startButton) {
+        toggleStartMenu(false);
+    }
+});
+
+/* CLOCK */
+function updateClock() {
+    const el = document.getElementById('clock');
+    const d = new Date();
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    el.textContent = `${h}:${m}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* INIT */
+ThemeManager.init();
+Notifications.show("Sayan OS loaded.");
