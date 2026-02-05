@@ -50,7 +50,7 @@ body {
 .window {
     position: absolute;
     width: 330px;
-    height: 240px;
+    height: 260px;
     background: rgba(20, 20, 20, 0.85);
     border: 1px solid #0ff6;
     border-radius: 12px;
@@ -104,4 +104,75 @@ body {
     padding: 12px;
     font-size: 14px;
     color: #ddd;
+}
+
+/* ======== FILE EXPLORER ======== */
+.explorer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file {
+    padding: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #0ff3;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.file:hover {
+    background: rgba(0,255,255,0.15);
+    transform: translateX(5px);
+}
+
+/* ======== EDITOR ======== */
+.editor-area {
+    width: 100%;
+    height: 100%;
+    background: #111;
+    color: #0ff;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 10px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+/* ======== ASSISTANT ======== */
+.assistant-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.assistant-output {
+    flex: 1;
+    background: #111;
+    padding: 10px;
+    overflow-y: auto;
+    border-bottom: 1px solid #0ff3;
+}
+
+.assistant-input {
+    display: flex;
+}
+
+.assistant-input input {
+    flex: 1;
+    padding: 8px;
+    background: #000;
+    color: #0ff;
+    border: 1px solid #0ff3;
+    outline: none;
+}
+
+.assistant-input button {
+    padding: 8px 12px;
+    background: #0ff3;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
 }
